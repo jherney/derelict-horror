@@ -1,8 +1,8 @@
 use bevy::input::mouse::AccumulatedMouseMotion;
 use bevy::prelude::*;
-use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
-use bevy::window::{CursorGrabMode, PrimaryWindow};
+use bevy::asset::RenderAssetUsages;
+use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
 use std::f32::consts::PI;
 use std::sync::Arc;
 
@@ -400,14 +400,14 @@ fn win_jingle(vol: f32) -> Vec<i16> {
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::BLACK))
-        .insert_resource(AmbientLight {
+        .insert_resource(GlobalAmbientLight {
             brightness: 6.0,
             ..default()
         })
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "DERELICT".into(),
-                resolution: (1280., 720.).into(),
+                resolution: (1280u32, 720u32).into(),
                 ..default()
             }),
             ..default()
@@ -635,7 +635,7 @@ fn spawn_player(commands: &mut Commands) {
                         range: 26.0,
                         inner_angle: 0.35,
                         outer_angle: 0.55,
-                        shadows_enabled: true,
+                        shadow_maps_enabled: true,
                         ..default()
                     },
                     Transform::from_xyz(0.22, -0.18, 0.0)
@@ -729,7 +729,7 @@ fn spawn_hud(commands: &mut Commands) {
         },
         Text::new("CELLS 0/3"),
         TextFont {
-            font_size: 22.0,
+            font_size: FontSize::Px(22.0),
             ..default()
         },
         TextColor(Color::srgb(0.7, 0.85, 0.9)),
@@ -744,7 +744,7 @@ fn spawn_hud(commands: &mut Commands) {
         },
         Text::new("WASD move · SHIFT sprint · find 3 cells, reach the pod"),
         TextFont {
-            font_size: 14.0,
+            font_size: FontSize::Px(14.0),
             ..default()
         },
         TextColor(Color::srgba(0.7, 0.75, 0.8, 0.6)),
@@ -754,12 +754,12 @@ fn spawn_hud(commands: &mut Commands) {
 // ---------------------------------------------------------------------- cursor
 fn grab_cursor_on_click(
     mouse: Res<ButtonInput<MouseButton>>,
-    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    mut cursors: Query<&mut CursorOptions, With<PrimaryWindow>>,
 ) {
     if mouse.just_pressed(MouseButton::Left) {
-        if let Ok(mut w) = windows.single_mut() {
-            w.cursor_options.grab_mode = CursorGrabMode::Confined;
-            w.cursor_options.visible = false;
+        if let Ok(mut c) = cursors.single_mut() {
+            c.grab_mode = CursorGrabMode::Confined;
+            c.visible = false;
         }
     }
 }
@@ -904,11 +904,8 @@ fn alien_ai(
             } else {
                 let dir = to.normalize();
                 move_actor(&mut a_t, dir, ALIEN_WANDER_SPEED, dt);
-                a_t.look_at(
-                    Vec3::new(p_t.translation.x, 0.0, p_t.translation.z) * 0.0
-                        + Vec3::new(a_t.translation.x + dir.x, 0.0, a_t.translation.z + dir.y),
-                    Vec3::Y,
-                );
+                let ahead = Vec3::new(a_t.translation.x + dir.x, 0.0, a_t.translation.z + dir.y);
+                a_t.look_at(ahead, Vec3::Y);
             }
         }
         AlienMode::Hunt => {
@@ -964,7 +961,7 @@ fn pickups(
         let d = Vec2::new(t.translation.x - p_t.translation.x, t.translation.z - p_t.translation.z)
             .length();
         if d < CELL_PICKUP_DIST {
-            if let Ok(ec) = commands.get_entity(e) {
+            if let Ok(mut ec) = commands.get_entity(e) {
                 ec.despawn();
             }
             collected.0 += 1;
@@ -1060,7 +1057,7 @@ fn end_screen(commands: &mut Commands, lines: &[&str], color: Color, tint: Color
                 parent.spawn((
                     Text::new(*line),
                     TextFont {
-                        font_size: if i == 0 { 52.0 } else { 20.0 },
+                        font_size: FontSize::Px(if i == 0 { 52.0 } else { 20.0 }),
                         ..default()
                     },
                     TextColor(if i == 0 {
@@ -1104,7 +1101,7 @@ fn restart_game(
         return;
     }
     for e in &round {
-        if let Ok(ec) = commands.get_entity(e) {
+        if let Ok(mut ec) = commands.get_entity(e) {
             ec.despawn();
         }
     }
