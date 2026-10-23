@@ -2,6 +2,7 @@
 name = "derelict-horror"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/jherney/derelict-horror"
 
 [dependencies]
 bevy = { version = "0.19", features = ["wav"] }
@@ -21,3 +22,8 @@ inherits = "release"
 opt-level = "z"
 lto = "fat"
 strip = "debuginfo"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
